@@ -23,14 +23,20 @@ def index(repo: str):
 @app.command()
 def query(text: str, n: int = 5):
     """Search the indexed codebase for a task or question."""
-    hits = search(text, n)
+    try:
+        hits = search(text, n)
+    except RuntimeError as e:
+        console.print(f"[yellow]{e}[/yellow]")
+        raise typer.Exit(1)
     if not hits:
-        console.print("[yellow]No results. Did you run `index` first?[/yellow]")
+        console.print("[yellow]No results.[/yellow]")
         return
 
     console.print(f"\n[bold]Top {len(hits)} matches for:[/bold] [cyan]{text}[/cyan]\n")
     for rank, h in enumerate(hits, 1):
-        header = f"[bold green]{rank}. {h['name']}[/bold green]  [dim]({h['kind']})[/dim]  →  [yellow]{h['location']}[/yellow]"
+        dist = f" · dist {h['distance']:.3f}" if h.get("distance") is not None else " · name-only"
+        meta = f"[dim]({h['kind']}) · score {h['score']:.4f}{dist}[/dim]"
+        header = f"[bold green]{rank}. {h['name']}[/bold green]  {meta}  →  [yellow]{h['location']}[/yellow]"
         console.print(header)
         # show the matched symbol as a preview
         preview = "\n".join(h["source"].splitlines()[:8])

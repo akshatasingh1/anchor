@@ -1,0 +1,7 @@
+tree-sitter
+tree-sitter-python
+sentence-transformers
+chromadb
+typer
+rich
+mcp[cli]

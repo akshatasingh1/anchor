@@ -1,15 +1,26 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
+# virtual environment
 .venv/
 venv/
 env/
-chroma/
+
+# python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# secrets
 .env
 
+# local vector store
+chroma/
+
+# model cache (if downloaded into the repo)
+.cache/
+
+# test repo cloned for indexing experiments
 requests/
 
+# editor / OS
 .DS_Store
-.vscode/
 .idea/
+.vscode/
