@@ -15,7 +15,7 @@ Most "chat with your codebase" tools chunk source files into fixed-size blocks o
 
 1. **Extract** — walk a repo, parse each Python file with tree-sitter, and pull out every function, class, and method with its qualified name (e.g. `AuthManager.login`) and exact `file:line` range.
 2. **Embed** — turn each symbol's source into a vector using a local `sentence-transformers` model (`all-MiniLM-L6-v2`). Runs fully offline, no API keys.
-3. **Store** — persist symbols and their vectors in a local ChromaDB collection.
+3. **Store** — persist symbols and their vectors in a local ChromaDB collection. Re-indexing is **incremental**: each symbol's body is hashed, so a repeat run only re-embeds what changed and drops symbols that disappeared.
 4. **Search** — embed the user's question with the same model and rank symbols by a **hybrid** of vector similarity and symbol-name keyword matching (fused with Reciprocal Rank Fusion), so both *"how are retries handled"* and *"HTTPAdapter.send"* land the right code.
 5. **MCP server** — the same search is exposed as an MCP tool, so AI coding assistants like Claude Code can call it directly to ground their answers in real source locations.
 
@@ -24,6 +24,7 @@ Most "chat with your codebase" tools chunk source files into fixed-size blocks o
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+pip install -e .            # optional: adds the `codebase-rag` command
 ```
 
 ## Usage
@@ -31,7 +32,7 @@ pip install -r requirements.txt
 Index a repository:
 
 ```bash
-python src/main.py index /path/to/repo
+python src/main.py index /path/to/repo        # or: codebase-rag index /path/to/repo
 ```
 
 Query it:
@@ -68,8 +69,19 @@ src/
   store.py        # embedding + ChromaDB storage/search
   main.py         # Typer CLI (index, query)
   mcp_server.py   # MCP server exposing search_code / index_status
-requirements.txt  # dependencies
+tests/            # pytest suite
+pyproject.toml    # packaging + pytest config
+requirements.txt  # runtime dependencies
 ```
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+The suite runs against an in-memory ChromaDB and stubs the embedding model, so it's fast; a couple of tests exercise the real `sentence-transformers` model for a semantic-ranking sanity check.
 
 ## Status
 
@@ -80,7 +92,9 @@ Working end to end on real repositories (tested on `requests`, 800+ symbols extr
 - [ ] Multi-language support (JavaScript/TypeScript via tree-sitter grammars)
 - [ ] Dependency/call-graph aware retrieval
 - [ ] `--no-tests` flag to exclude test files from results
-- [ ] Installable pip package
+- [ ] `--watch` mode: re-index on file save
+- [x] Incremental indexing (re-embed only changed symbols)
+- [x] Installable pip package
 - [x] Hybrid search (embeddings + keyword/symbol-name matching)
 
 ## Stack

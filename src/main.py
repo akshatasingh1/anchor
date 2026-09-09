@@ -13,11 +13,14 @@ app = typer.Typer(help="RAG assistant for navigating a codebase.")
 
 @app.command()
 def index(repo: str):
-    """Index a repo: extract symbols, embed them, store them."""
+    """Index a repo: extract symbols, embed only what changed, store them."""
     symbols = extract_repo(repo)
-    print(f"Extracted {len(symbols)} symbols. Embedding + storing...")
-    count = store_symbols(symbols)
-    print(f"Stored {count} symbols in Chroma.")
+    print(f"Extracted {len(symbols)} symbols. Syncing index...")
+    s = store_symbols(symbols)
+    print(
+        f"Done: +{s['new']} new, ~{s['changed']} changed, -{s['removed']} removed, "
+        f"{s['unchanged']} unchanged  ({s['total']} total in Chroma)."
+    )
 
 
 @app.command()
@@ -43,6 +46,11 @@ def query(text: str, n: int = 5):
         console.print(Syntax(preview, "python", theme="ansi_dark", line_numbers=False))
         console.print()
 
-if __name__ == "__main__":
+def main() -> None:
+    """Console-script entry point."""
     app()
+
+
+if __name__ == "__main__":
+    main()
 

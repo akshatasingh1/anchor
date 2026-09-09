@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 from pathlib import Path
@@ -21,25 +22,74 @@ def embed(texts: list[str]) -> list[list[float]]:
     return _model.encode(texts).tolist()
 
 
-def store_symbols(symbols) -> int:
-    """Embed each symbol's source and save it to Chroma with metadata."""
+def _symbol_id(s) -> str:
+    return f"{s.path}:{s.start_line}:{s.name}"
 
-    try:
-        _client.delete_collection(COLLECTION)
-    except Exception:
-        pass
-    collection = _client.create_collection(COLLECTION)
 
-    ids       = [f"{s.path}:{s.start_line}:{s.name}" for s in symbols]
-    documents = [s.source for s in symbols]
-    metadatas = [
-        {"name": s.name, "kind": s.kind, "path": s.path, "start_line": s.start_line}
-        for s in symbols
-    ]
-    vectors = embed(documents)
+def _content_hash(source: str) -> str:
+    return hashlib.sha1(source.encode("utf-8", "replace")).hexdigest()
 
-    collection.add(ids=ids, embeddings=vectors, documents=documents, metadatas=metadatas)
-    return collection.count()
+
+def store_symbols(symbols) -> dict:
+    """Incrementally sync freshly extracted symbols into Chroma.
+
+    Only new or body-changed symbols are embedded; symbols that no longer exist
+    in the source are deleted. Returns a summary:
+    ``{"new", "changed", "removed", "unchanged", "total"}``.
+    """
+    collection = _client.get_or_create_collection(COLLECTION)
+
+    # What's already indexed: id -> stored content hash.
+    existing = collection.get(include=["metadatas"])
+    stored_hash = {
+        _id: (meta or {}).get("hash")
+        for _id, meta in zip(existing["ids"], existing["metadatas"])
+    }
+
+    # De-dupe the fresh symbols by id (last one wins) before diffing.
+    fresh = {_symbol_id(s): s for s in symbols}
+
+    to_upsert = []  # (id, symbol, hash) needing (re)embedding
+    unchanged = 0
+    for _id, s in fresh.items():
+        h = _content_hash(s.source)
+        if stored_hash.get(_id) == h:
+            unchanged += 1
+        else:
+            to_upsert.append((_id, s, h))
+
+    removed_ids = [_id for _id in stored_hash if _id not in fresh]
+    new_count = sum(1 for _id, _, _ in to_upsert if _id not in stored_hash)
+    changed_count = len(to_upsert) - new_count
+
+    if removed_ids:
+        collection.delete(ids=removed_ids)
+
+    if to_upsert:
+        vectors = embed([s.source for _, s, _ in to_upsert])
+        collection.upsert(
+            ids=[_id for _id, _, _ in to_upsert],
+            embeddings=vectors,
+            documents=[s.source for _, s, _ in to_upsert],
+            metadatas=[
+                {
+                    "name": s.name,
+                    "kind": s.kind,
+                    "path": s.path,
+                    "start_line": s.start_line,
+                    "hash": h,
+                }
+                for _, s, h in to_upsert
+            ],
+        )
+
+    return {
+        "new": new_count,
+        "changed": changed_count,
+        "removed": len(removed_ids),
+        "unchanged": unchanged,
+        "total": collection.count(),
+    }
 
 
 def _get_collection():
