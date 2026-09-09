@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+chroma/
+.env
+
+requests/
+
+.DS_Store
+.vscode/
+.idea/
