@@ -74,11 +74,26 @@ def extract_file(file_path: Path, repo_root: Path) -> list[Symbol]:
     return symbols
 
 
-def extract_repo(repo_root: str | Path, ignore: set[str] = frozenset({".git", "__pycache__", ".venv", "venv", "node_modules"})) -> list[Symbol]:
+def _is_test_file(rel: Path) -> bool:
+    """True for pytest-style test modules and anything under a test(s)/ dir."""
+    parts = [p.lower() for p in rel.parts]
+    if any(p in ("test", "tests") for p in parts[:-1]):
+        return True
+    name = rel.name.lower()
+    return name == "conftest.py" or name.startswith("test_") or name.endswith("_test.py")
+
+
+def extract_repo(
+    repo_root: str | Path,
+    ignore: set[str] = frozenset({".git", "__pycache__", ".venv", "venv", "node_modules"}),
+    include_tests: bool = False,
+) -> list[Symbol]:
     repo_root = Path(repo_root).resolve()
     all_symbols: list[Symbol] = []
     for py_file in repo_root.rglob("*.py"):
         if any(part in ignore for part in py_file.parts):
+            continue
+        if not include_tests and _is_test_file(py_file.relative_to(repo_root)):
             continue
         try:
             all_symbols.extend(extract_file(py_file, repo_root))

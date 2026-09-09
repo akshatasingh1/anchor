@@ -35,6 +35,8 @@ Index a repository:
 python src/main.py index /path/to/repo        # or: codebase-rag index /path/to/repo
 ```
 
+Test files (`test_*.py`, `*_test.py`, `conftest.py`, anything under `test/` or `tests/`) are excluded by default. Pass `--tests` to include them.
+
 Query it:
 
 ```bash
@@ -91,7 +93,7 @@ Working end to end on real repositories (tested on `requests`, 800+ symbols extr
 
 - [ ] Multi-language support (JavaScript/TypeScript via tree-sitter grammars)
 - [ ] Dependency/call-graph aware retrieval
-- [ ] `--no-tests` flag to exclude test files from results
+- [x] `--no-tests` flag to exclude test files from results (default; `--tests` to include)
 - [ ] `--watch` mode: re-index on file save
 - [x] Incremental indexing (re-embed only changed symbols)
 - [x] Installable pip package

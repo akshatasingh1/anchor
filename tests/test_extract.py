@@ -92,3 +92,42 @@ def test_extract_repo_tolerates_unparseable_file(tmp_path: Path, capsys):
 
     names = {s.name for s in extract_repo(tmp_path)}
     assert "good" in names
+
+
+def test_extract_repo_excludes_tests_by_default(tmp_path: Path):
+    (tmp_path / "app.py").write_text("def run(): pass\n")
+    (tmp_path / "test_app.py").write_text("def test_run(): pass\n")
+    (tmp_path / "helpers_test.py").write_text("def test_helper(): pass\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_more.py").write_text("def test_more(): pass\n")
+    (tmp_path / "tests" / "conftest.py").write_text("def fixture_x(): pass\n")
+    (tmp_path / "pkg").mkdir()
+    (tmp_path / "pkg" / "conftest.py").write_text("def helper(): pass\n")
+
+    names = {s.name for s in extract_repo(tmp_path)}
+    assert names == {"run"}
+
+
+def test_extract_repo_includes_tests_when_asked(tmp_path: Path):
+    (tmp_path / "app.py").write_text("def run(): pass\n")
+    (tmp_path / "test_app.py").write_text("def test_run(): pass\n")
+
+    names = {s.name for s in extract_repo(tmp_path, include_tests=True)}
+    assert names == {"run", "test_run"}
+
+
+@pytest.mark.parametrize("path, is_test", [
+    ("test_x.py", True),
+    ("x_test.py", True),
+    ("conftest.py", True),
+    ("tests/foo.py", True),
+    ("a/tests/b/foo.py", True),
+    ("test/foo.py", True),
+    ("app.py", False),
+    ("contest.py", False),
+    ("latest.py", False),
+    ("src/test_helpers/util.py", False),
+])
+def test_is_test_file(path, is_test):
+    from extract import _is_test_file
+    assert _is_test_file(Path(path)) is is_test

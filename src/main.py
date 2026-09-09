@@ -12,9 +12,15 @@ app = typer.Typer(help="RAG assistant for navigating a codebase.")
 
 
 @app.command()
-def index(repo: str):
+def index(
+    repo: str,
+    tests: bool = typer.Option(
+        False, "--tests/--no-tests",
+        help="Include test files in the index (default: excluded).",
+    ),
+):
     """Index a repo: extract symbols, embed only what changed, store them."""
-    symbols = extract_repo(repo)
+    symbols = extract_repo(repo, include_tests=tests)
     print(f"Extracted {len(symbols)} symbols. Syncing index...")
     s = store_symbols(symbols)
     print(
