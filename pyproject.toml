@@ -7,6 +7,7 @@ name = "codebase-rag-assistant"
 version = "0.1.0"
 description = "Symbol-level RAG over a codebase: ask in natural language, get ranked functions/classes with exact file:line locations."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.10"
 dependencies = [
     "tree-sitter",

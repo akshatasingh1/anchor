@@ -1,7 +1,9 @@
-# Codebase RAG Assistant
+# Anchor
 
+[![CI](https://github.com/akshatasingh1/anchor/actions/workflows/ci.yml/badge.svg)](https://github.com/akshatasingh1/anchor/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-A CLI tool that answers natural-language questions about a codebase by retrieving the most relevant functions and classes — with exact `file:line` locations — instead of guessing or grepping.
+A CLI tool that answers natural-language questions about a codebase by retrieving the most relevant functions and classes — with exact `file:line` locations — instead of guessing or grepping. Every result is anchored to real source.
 
 Ask something like *"how does retry logic work"* and get back ranked, real code locations, even when the answer doesn't contain the word "retry."
 

@@ -3,7 +3,6 @@ from extract import extract_repo
 from store import store_symbols, search
 
 from rich.console import Console
-from rich.panel import Panel
 from rich.syntax import Syntax
 
 console = Console()
